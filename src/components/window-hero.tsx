@@ -59,6 +59,7 @@ export function WindowHero() {
   const root = useRef<HTMLElement>(null);
 
   useLayoutEffect(() => {
+    let idle = 0;
     const ctx = gsap.context(() => {
       const win = root.current!.querySelector<HTMLElement>("[data-window]")!;
       // Big enough that the straight part of the opening (below the arch) fills the screen.
@@ -69,6 +70,16 @@ export function WindowHero() {
 
       const phone = () => window.innerWidth < 768;
 
+      // While scrolling, the scaled layers are kept as GPU images so each frame is cheap.
+      // The browser draws those images once, at the scale of that moment, and enlarging
+      // them blurs; so once scrolling pauses, drop the hint and it redraws them sharp.
+      const layers = gsap.utils.toArray<HTMLElement>("[data-window], [data-view], [data-branch]");
+      const moving = () => {
+        layers.forEach((l) => (l.style.willChange = "transform"));
+        clearTimeout(idle);
+        idle = window.setTimeout(() => layers.forEach((l) => (l.style.willChange = "")), 180);
+      };
+
       const tl = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
@@ -78,6 +89,7 @@ export function WindowHero() {
           end: () => `+=${window.innerHeight * 3.4}`,
           // Lenis already smooths the scroll; a short scrub keeps the scene from trailing behind it.
           scrub: 0.25,
+          onUpdate: moving,
           invalidateOnRefresh: true,
         },
       });
@@ -106,7 +118,10 @@ export function WindowHero() {
         .to("[data-discover] [data-copy]", { opacity: 0, duration: 0.12 }, 1.25)
         .fromTo("[data-home]", { opacity: 0, y: 160 }, { opacity: 1, y: 0, duration: 0.25, stagger: 0.06, ease: "power3.out" }, 1.3);
     }, root);
-    return () => ctx.revert();
+    return () => {
+      clearTimeout(idle);
+      ctx.revert();
+    };
   }, []);
 
   return (
@@ -123,12 +138,12 @@ export function WindowHero() {
         {/* GSAP owns the img transform, so the tilt and mirror live on the wrapper */}
         <div className="absolute -bottom-[10%] -left-[3%] z-10 w-[46vw] origin-bottom-left md:w-[24vw] rotate-[18deg]">
           {/* eslint-disable-next-line @next/next/no-img-element -- decorative */}
-          <img data-branch src={OLIVE} alt="" className="w-full origin-bottom-left opacity-0 drop-shadow-[18px_24px_18px_rgb(60_40_20/0.18)] will-change-transform" />
+          <img data-branch src={OLIVE} alt="" className="w-full origin-bottom-left opacity-0 drop-shadow-[18px_24px_18px_rgb(60_40_20/0.18)]" />
         </div>
         <div className="absolute -right-[3%] -bottom-[10%] z-10 w-[46vw] origin-bottom-right md:w-[24vw] -rotate-[18deg]">
           <div className="-scale-x-100">
             {/* eslint-disable-next-line @next/next/no-img-element -- decorative */}
-            <img data-branch src={OLIVE} alt="" className="w-full origin-bottom-left opacity-0 drop-shadow-[18px_24px_18px_rgb(60_40_20/0.18)] will-change-transform" />
+            <img data-branch src={OLIVE} alt="" className="w-full origin-bottom-left opacity-0 drop-shadow-[18px_24px_18px_rgb(60_40_20/0.18)]" />
           </div>
         </div>
 
@@ -155,11 +170,11 @@ export function WindowHero() {
 
         {/* The window: view + wall hole + bronze frame + doors + sill, scaled as one */}
         <div className="absolute inset-0 z-10 grid place-items-center">
-          <div data-window className="relative will-change-transform h-[40svh] w-[calc(40svh*0.62)] wide:h-[66svh] wide:w-[calc(66svh*0.62)]" style={{ transformStyle: "preserve-3d", perspective: "900px" }}>
+          <div data-window className="relative h-[40svh] w-[calc(40svh*0.62)] wide:h-[66svh] wide:w-[calc(66svh*0.62)]" style={{ transformStyle: "preserve-3d", perspective: "900px" }}>
             {/* The view of Dubai inside the opening, with the title on it */}
             <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: ARCH_RADIUS }}>
               {/* Wider than the opening so it can start zoomed out and still fill the screen */}
-              <div data-view className="absolute will-change-transform -inset-y-[8%] -inset-x-[110%]">
+              <div data-view className="absolute -inset-y-[8%] -inset-x-[110%]">
                 {/* eslint-disable-next-line @next/next/no-img-element -- large source needed for the zoom */}
                 <img src={VIEW} alt="The Burj Khalifa and Downtown Dubai across the water" fetchPriority="high" className="absolute inset-0 size-full object-cover object-[65%_50%]" />
               </div>
