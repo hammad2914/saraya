@@ -48,3 +48,38 @@ html.lenis body {
 @keyframes fade {
   from { opacity: 0; }
 }
+
+/* The sound button's level bars */
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Maps: the card above a home's pin, and round zoom buttons */
+.saraya-popup .maplibregl-popup-content {
+  padding: 0;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: 0 24px 50px -20px rgb(40 28 16 / 0.6);
+}
+.saraya-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: #fff;
+}
+.saraya-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: #fff;
+}
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group {
+  margin: 14px 14px 0 0;
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 10px 24px -10px rgb(40 28 16 / 0.55);
+}
+.maplibregl-ctrl-group button {
+  width: 40px;
+  height: 40px;
+}

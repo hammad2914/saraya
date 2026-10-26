@@ -2,13 +2,17 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import type { Map as MapLibreMap } from "maplibre-gl";
+import type { Map as MapLibreMap, Popup } from "maplibre-gl";
 import { ArrowRight, Plane, TrainFront, Waves } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { communities, photo } from "@/content/communities";
+import { homes } from "@/content/homes";
+import { declutter, homeCard, homePin, makeMap } from "@/lib/map";
 
 const phone = () => window.innerWidth < 768;
+/** Zoomed in past this, the map swaps area labels for each home's price. */
+const NEAR = 11.3;
 
 /**
  * Where to buy: a real map of Dubai with a price pin on each community.
@@ -25,37 +29,21 @@ export function Communities() {
   const fly = (id: string) => {
     const at = communities.find((x) => x.id === id)!.at;
     // On desktop the panel covers the left of the map, so land the pin to its right.
-    map.current?.flyTo({ center: at, zoom: phone() ? 10.9 : 12.2, speed: 0.8, offset: phone() ? [0, 0] : [170, 0] });
+    map.current?.flyTo({ center: at, zoom: phone() ? 11.6 : 12.2, speed: 0.8, offset: phone() ? [0, 0] : [170, 0] });
     document.querySelectorAll<HTMLElement>("[data-pin]").forEach((p) => (p.dataset.on = String(p.dataset.pin === id)));
   };
 
   useEffect(() => {
     let gone = false;
-    import("maplibre-gl").then((maplibregl) => {
-      if (gone || !box.current) return;
-      // Turbopack can't bundle the worker, so it's served from public/ (copied on postinstall).
-      maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
-      const m = new maplibregl.Map({
-        container: box.current,
-        style: "https://tiles.openfreemap.org/styles/positron",
-        center: [55.24, 25.13],
-        zoom: phone() ? 9.6 : 10.6,
-        attributionControl: { compact: true },
-        cooperativeGestures: true,
-      });
+    makeMap(box.current!, { center: [55.24, 25.13], zoom: phone() ? 9.6 : 10.6, cancelled: () => gone }).then((made) => {
+      if (!made) return;
+      const { lib, m } = made;
       map.current = m;
-      // Warm the grey basemap towards the site's sand and sea.
-      m.on("style.load", () => {
-        for (const l of m.getStyle().layers) {
-          if (l.type === "background") m.setPaintProperty(l.id, "background-color", "#efe8dc");
-          if (l.type === "fill" && l.id.includes("water")) m.setPaintProperty(l.id, "fill-color", "#c3d3d1");
-        }
-      });
-      m.once("load", () => {
-        fly(activeRef.current);
-        // Keep the credits folded into the (i) button until asked for.
-        box.current?.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");
-      });
+      m.once("load", () => fly(activeRef.current));
+      // Area labels when zoomed out, each home's price when zoomed in.
+      const near = () => (box.current!.dataset.near = String(m.getZoom() >= NEAR));
+      near();
+      m.on("zoom", near);
       communities.forEach((x) => {
         const el = document.createElement("button");
         el.type = "button";
@@ -63,11 +51,25 @@ export function Communities() {
         el.dataset.on = String(x.id === activeRef.current);
         el.setAttribute("aria-label", `${x.name}, from ${x.priceFrom}`);
         el.className =
-          "group grid gap-px rounded-full bg-white px-3 py-1.5 text-left font-sans text-[12.5px] leading-tight font-semibold text-ink shadow-[0_10px_24px_-10px_rgb(40_28_16/0.55)] transition hover:-translate-y-0.5 data-[on=true]:z-10 data-[on=true]:bg-ink data-[on=true]:text-ivory";
+          "group grid gap-px rounded-full bg-white px-3 py-1.5 text-left font-sans text-[12.5px] leading-tight font-semibold text-ink shadow-[0_10px_24px_-10px_rgb(40_28_16/0.55)] transition hover:-translate-y-0.5 data-[on=true]:z-10 data-[on=true]:bg-ink data-[on=true]:text-ivory group-data-[near=true]/map:data-[on=true]:pointer-events-none group-data-[near=true]/map:data-[on=true]:opacity-0";
         el.innerHTML = `<span>${x.name}</span><span class="font-medium text-stone group-data-[on=true]:text-gold">from ${x.priceFrom}</span>`;
         el.onclick = () => pick(x.id);
-        new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat(x.at).addTo(m);
+        const wrap = document.createElement("div");
+        wrap.append(el);
+        new lib.Marker({ element: wrap, anchor: "bottom" }).setLngLat(x.at).addTo(m);
       });
+      let popup: Popup | null = null;
+      const homePins = homes.map((h) => {
+        const { wrap, button } = homePin(h, { near: true });
+        button.onclick = (e) => {
+          e.stopPropagation();
+          popup?.remove();
+          popup = new lib.Popup({ closeButton: false, offset: 18, maxWidth: "none", className: "saraya-popup", focusAfterOpen: false }).setLngLat(h.at).setDOMContent(homeCard(h)).addTo(m);
+        };
+        return new lib.Marker({ element: wrap, anchor: "bottom" }).setLngLat(h.at).addTo(m);
+      });
+      // Homes close together become one "3 homes" bubble until you zoom in.
+      m.once("load", declutter(lib, m, () => homePins, { near: true }));
     });
     return () => {
       gone = true;
@@ -89,14 +91,14 @@ export function Communities() {
         <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
           <h2 className="font-display text-[clamp(40px,4.6vw,76px)] leading-[0.98] font-semibold tracking-[-0.02em]">Where to buy in Dubai</h2>
           <p className="max-w-[400px] text-[15.5px] leading-relaxed text-ink/70">
-            Tap a pin to see what a home there costs, and how far it is from the airport, the metro and the beach.
+            Tap an area to see what a home there costs and how far it is from the airport, the metro and the beach. Zoom in to see every home for sale or rent.
           </p>
         </div>
 
         <div className="relative mt-8 overflow-hidden rounded-[28px] bg-sand md:mt-10">
           {/* MapLibre sets position: relative on its container, so it needs a sized wrapper */}
           <div className="h-[420px] md:h-[660px]">
-            <div ref={box} className="size-full" />
+            <div ref={box} data-near="false" className="group/map size-full" />
           </div>
 
           {/* Pins are small on a phone, so the names are here too */}
@@ -133,8 +135,8 @@ export function Communities() {
                 <li className="flex items-center gap-2"><TrainFront className="size-4 shrink-0" /> {c.metro}</li>
                 <li className="flex items-center gap-2"><Waves className="size-4 shrink-0" /> {c.beach}</li>
               </ul>
-              <a href="#homes" data-community={c.id} className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-[14px] font-bold text-ivory transition hover:bg-gold-dark">
-                See homes here <ArrowRight className="size-4" />
+              <a href={`/homes?community=${c.id}`} className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-[14px] font-bold text-ivory transition hover:bg-gold-dark">
+                See {homes.filter((h) => h.community === c.id && h.deal === "buy").length} homes for sale here <ArrowRight className="size-4" />
               </a>
             </div>
           </article>

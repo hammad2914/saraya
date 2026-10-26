@@ -7,6 +7,8 @@ import { photo } from "@/content/communities";
 import { type Deal, dealLabels, type Home, homes, priceLabel } from "@/content/homes";
 
 const ALL = "All areas";
+/** The home page shows a few; the marketplace has the rest. */
+const SHOWN = 4;
 
 function Facts({ h, dark = false }: { h: Home; dark?: boolean }) {
   return (
@@ -79,6 +81,9 @@ function Row({ h, onOpen }: { h: Home; onOpen: () => void }) {
           </button>
           <a href="#viewing" data-book={h.id} className="rounded-full bg-ink px-5 py-3 text-[14px] font-bold text-ivory transition hover:bg-gold-dark">
             Book a viewing
+          </a>
+          <a href={`/homes/${h.id}`} className="flex items-center gap-1.5 px-3 py-3 text-[14px] font-bold text-gold-dark transition hover:text-ink">
+            Full details <ArrowRight className="size-4" />
           </a>
         </div>
       </div>
@@ -168,9 +173,14 @@ function Inside({ list, id, setId, onClose }: { list: Home[]; id: string | null;
               <Facts h={h} dark />
             </div>
             <p className="mt-8 font-display text-[clamp(32px,3vw,44px)] font-semibold">{priceLabel(h)}</p>
-            <a href="#viewing" data-book={h.id} onClick={onClose} className="mt-6 self-start rounded-full bg-gold px-6 py-3.5 text-[15px] font-bold text-ink transition hover:bg-ivory">
-              Book a viewing
-            </a>
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <a href="#viewing" data-book={h.id} onClick={onClose} className="rounded-full bg-gold px-6 py-3.5 text-[15px] font-bold text-ink transition hover:bg-ivory">
+                Book a viewing
+              </a>
+              <a href={`/homes/${h.id}`} className="flex items-center gap-1.5 px-4 py-3.5 text-[15px] font-bold text-ivory/80 transition hover:text-ivory">
+                Full details <ArrowRight className="size-4" />
+              </a>
+            </div>
             {list.length > 1 && (
               <div className="mt-auto flex items-center justify-between gap-3 border-t border-white/10 pt-6 max-md:mt-10">
                 <button type="button" onClick={() => go(-1)} className="flex items-center gap-2 text-[14px] font-semibold text-ivory/70 transition hover:text-ivory">
@@ -203,31 +213,10 @@ export function Homes() {
   const pool = homes.filter((h) => h.deal === deal);
   const areas = [ALL, ...new Set(pool.map((h) => h.area))];
   const list = pool.filter((h) => (area === ALL || h.area === area) && h.beds >= beds);
-
-  // Links elsewhere on the page can pick the tab (data-deal) or the area (data-community).
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      const a = (e.target as Element).closest<HTMLElement>("[data-deal],[data-community]");
-      if (!a) return;
-      const d = a.dataset.deal as Deal | undefined;
-      if (d) {
-        setDeal(d);
-        setArea(ALL);
-      }
-      const c = a.dataset.community;
-      if (c) {
-        const here = homes.filter((h) => h.community === c);
-        const pick = here.find((h) => h.deal === "buy") ?? here[0];
-        if (pick) {
-          setDeal(pick.deal);
-          setArea(pick.area);
-        } else setArea(ALL);
-      }
-      setBeds(0);
-    };
-    document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
-  }, []);
+  const shown = list.slice(0, SHOWN);
+  // The same view in the marketplace, with every match.
+  const community = area === ALL ? null : pool.find((h) => h.area === area)!.community;
+  const more = `/homes?deal=${deal}${community ? `&community=${community}` : ""}${beds ? `&beds=${beds}` : ""}`;
 
   return (
     <section id="homes" className="scroll-mt-16 bg-[#f4eee5] px-5 py-20 md:px-10 md:py-28">
@@ -272,7 +261,7 @@ export function Homes() {
           {deal === "rent" ? ", yearly rent" : deal === "offplan" ? ", still being built" : " for sale"}
         </p>
         <div key={deal + area + beds} className="mt-3 grid gap-5">
-          {list.map((h) => (
+          {shown.map((h) => (
             <Row key={h.id} h={h} onOpen={() => setOpen(h.id)} />
           ))}
           {!list.length && (
@@ -284,9 +273,14 @@ export function Homes() {
             </div>
           )}
         </div>
+        {list.length > SHOWN && (
+          <a href={more} className="mt-5 flex items-center justify-center gap-2 rounded-full bg-ink py-4 text-[15px] font-bold text-ivory transition hover:bg-gold-dark">
+            See all {list.length} homes, with the map <ArrowRight className="size-4" />
+          </a>
+        )}
         <p className="mt-4 text-[12.5px] text-stone">Listings in this concept are examples. Photos from Unsplash.</p>
       </div>
-      <Inside list={list} id={open} setId={setOpen} onClose={() => setOpen(null)} />
+      <Inside list={shown} id={open} setId={setOpen} onClose={() => setOpen(null)} />
     </section>
   );
 }

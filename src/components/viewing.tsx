@@ -4,7 +4,7 @@ import { Check, Clock, Globe, MapPin, Video } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { photo } from "@/content/communities";
-import { homes, priceLabel } from "@/content/homes";
+import { type Home, homes, priceLabel } from "@/content/homes";
 import {
   agentFor,
   cities,
@@ -21,6 +21,9 @@ import {
 const dayName = (d: Date) => d.toLocaleDateString("en-GB", { weekday: "short" });
 const dayNum = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 const longDay = (d: Date) => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+
+/** A listing as one of the viewing choices. */
+const asOption = (l: Home) => ({ id: l.id, name: l.name, area: l.area, price: priceLabel(l), photo: l.photos[0].id });
 
 function Label({ children }: { children: React.ReactNode }) {
   return <p className="mt-9 text-[13px] font-bold tracking-[0.2em] text-stone">{children}</p>;
@@ -44,19 +47,22 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
 /**
  * Book a viewing: pick the home, in person or on a video call, your language
  * and a time. On a video call the times show in your own city's clock.
+ * On a home's own page (`initial`) the home is already chosen.
  */
-export function Viewing() {
+export function Viewing({ initial }: { initial?: string }) {
+  const start = homes.find((x) => x.id === initial);
   // Dates and the viewer's time zone come from their clock, so they are set after mount.
   const [days, setDays] = useState<Date[]>([]);
-  const [home, setHome] = useState(viewingHomes[0].id);
-  const [video, setVideo] = useState(false);
+  const [home, setHome] = useState(start?.id ?? viewingHomes[0].id);
+  // Off-plan homes are still being built, so they're shown on a video call.
+  const [video, setVideo] = useState(start?.deal === "offplan");
   const [lang, setLang] = useState<Language>("en");
   const [city, setCity] = useState(cities[0]);
   const [day, setDay] = useState(0);
   const [slot, setSlot] = useState<number | null>(null);
   const [sentFor, setSentFor] = useState("");
   // A home picked from the listings ("Book a viewing" on it) joins the choices, first.
-  const [picked, setPicked] = useState<(typeof viewingHomes)[number] | null>(null);
+  const [picked, setPicked] = useState<(typeof viewingHomes)[number] | null>(start ? asOption(start) : null);
   const options = picked ? [picked, ...viewingHomes.filter((x) => x.id !== picked.id)].slice(0, 3) : viewingHomes;
 
   useEffect(() => {
@@ -64,7 +70,7 @@ export function Viewing() {
       const id = (e.target as Element).closest<HTMLElement>("[data-book]")?.dataset.book;
       const l = homes.find((x) => x.id === id);
       if (!l) return;
-      setPicked({ id: l.id, name: l.name, area: l.area, price: priceLabel(l), photo: l.photos[0].id });
+      setPicked(asOption(l));
       setHome(l.id);
       if (l.deal === "offplan") setVideo(true);
     };
@@ -100,20 +106,28 @@ export function Viewing() {
             See the home in person, or let your agent walk you round it on a video call from wherever you are.
           </p>
 
-          <Label>WHICH HOME</Label>
-          <div className="-mx-5 mt-3 flex snap-x gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">
+          {!start && <Label>WHICH HOME</Label>}
+          <div hidden={!!start} className="-mx-5 mt-3 flex snap-x gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0">
             {options.map((x) => (
               <button
                 key={x.id}
                 type="button"
                 aria-pressed={x.id === home}
                 onClick={() => setHome(x.id)}
-                className={`w-[64vw] max-w-[260px] shrink-0 snap-start overflow-hidden rounded-[20px] bg-white text-left transition sm:w-auto sm:max-w-none ${
-                  x.id === home ? "ring-2 ring-ink" : "opacity-70 hover:opacity-100"
+                className={`relative w-[64vw] max-w-[260px] shrink-0 snap-start overflow-hidden rounded-[20px] bg-white text-left transition duration-300 sm:w-auto sm:max-w-none ${
+                  x.id === home ? "-translate-y-1 shadow-[0_24px_40px_-24px_rgb(40_28_16/0.55)]" : "opacity-60 hover:opacity-100"
                 }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- remote photo */}
                 <img src={photo(x.photo, 600)} alt="" className="aspect-[16/10] w-full object-cover" />
+                {/* The chosen home gets a check, not an outline */}
+                <span
+                  className={`absolute top-3 right-3 grid size-8 place-items-center rounded-full bg-gold text-white shadow-md transition duration-300 ${
+                    x.id === home ? "scale-100 opacity-100" : "scale-50 opacity-0"
+                  }`}
+                >
+                  <Check className="size-4" strokeWidth={3} />
+                </span>
                 <span className="block p-3">
                   <span className="block text-[15px] font-semibold">{x.name}</span>
                   <span className="block text-[13px] text-stone">

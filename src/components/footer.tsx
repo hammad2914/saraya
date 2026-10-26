@@ -1,10 +1,12 @@
 "use client";
 
 import { Car, Clock, TrainFront } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { communities, photo } from "@/content/communities";
 import { office } from "@/content/viewing";
+import { toSection } from "@/lib/links";
 
 export const DUSK = "photo-1749023098108-97924877ef74"; // the Burj at sunset, from the beach
 const ARCH = "M0 160 V50 A50 50 0 0 1 100 50 V160 Z"; // the same arch as the hero window
@@ -75,7 +77,7 @@ const link = "text-[15px] text-ink/80 transition hover:text-gold-dark";
  * The footer bookends the hero: the same arch window, now at dusk, with one
  * last way to book, the office (open right now?) and the site's links.
  */
-export function Footer() {
+export function Footer({ here = [] }: { here?: readonly string[] }) {
   return (
     <footer className="bg-[#efe6d8] px-5 pt-20 pb-8 md:px-10 md:pt-28">
       <div className="mx-auto max-w-[1240px]">
@@ -95,7 +97,7 @@ export function Footer() {
             <p className="mt-5 max-w-[460px] text-[16px] leading-relaxed text-ink/70">
               Visit a home in person, or walk round it on a video call from wherever you are.
             </p>
-            <a href="#viewing" className="mt-8 inline-block rounded-full bg-ink px-7 py-4 text-[15px] font-bold text-ivory transition hover:bg-gold-dark">
+            <a href={toSection("viewing", here)} className="mt-8 inline-block rounded-full bg-ink px-7 py-4 text-[15px] font-bold text-ivory transition hover:bg-gold-dark">
               Book a viewing
             </a>
 
@@ -121,9 +123,9 @@ export function Footer() {
                 <div>
                   <p className={head}>HOMES</p>
                   <ul className="mt-4 grid gap-2.5">
-                    <li><a href="#homes" data-deal="buy" className={link}>Buy</a></li>
-                    <li><a href="#homes" data-deal="rent" className={link}>Rent</a></li>
-                    <li><a href="#homes" data-deal="offplan" className={link}>Off-plan</a></li>
+                    <li><Link href="/homes?deal=buy" className={link}>Buy</Link></li>
+                    <li><Link href="/homes?deal=rent" className={link}>Rent</Link></li>
+                    <li><Link href="/homes?deal=offplan" className={link}>Off-plan</Link></li>
                   </ul>
                 </div>
                 <div>
@@ -131,7 +133,7 @@ export function Footer() {
                   <ul className="mt-4 grid gap-2.5">
                     {communities.map((c) => (
                       <li key={c.id}>
-                        <a href="#homes" data-community={c.id} className={link}>{c.name}</a>
+                        <a href={`/homes?community=${c.id}`} className={link}>{c.name}</a>
                       </li>
                     ))}
                   </ul>
@@ -139,9 +141,9 @@ export function Footer() {
                 <div>
                   <p className={head}>BUYING</p>
                   <ul className="mt-4 grid gap-2.5">
-                    <li><a href="#buying" className={link}>What it costs</a></li>
-                    <li><a href="#communities" className={link}>Where to buy</a></li>
-                    <li><a href="#viewing" className={link}>Book a viewing</a></li>
+                    <li><a href={toSection("buying", here)} className={link}>What it costs</a></li>
+                    <li><a href={toSection("communities", here)} className={link}>Where to buy</a></li>
+                    <li><a href={toSection("viewing", here)} className={link}>Book a viewing</a></li>
                   </ul>
                 </div>
               </nav>

@@ -9,16 +9,17 @@ gsap.registerPlugin(ScrollTrigger);
 
 const photo = (id: string, w = 2400) => `https://images.unsplash.com/${id}?w=${w}&q=82&fm=jpg`;
 
-const VIEW = "photo-1773829126358-1e5f4e5aa532"; // Burj Khalifa and Downtown across the water, 8064px
-const WALL = "photo-1730402224803-7e17932be9d4"; // warm limewash plaster
-const SHADOW = "photo-1728509807162-8941c3b10fa4"; // palm-leaf shadows on a pale wall
+// Local, pre-graded images: the colour grade, sky tint and wall textures are baked in,
+// so the browser isn't re-filtering and re-blending huge layers on every scroll frame.
+// Sources: Unsplash photo-1773829126358 (the view), photo-1730402224803 + photo-1728509807162 (the wall).
+const VIEW = "/hero/burj.webp";
+const WALL = "/hero/wall.webp";
 const OLIVE = "/deco/olive.webp"; // olive branch, cut out
 
 /** The arched opening, as a path in a 100 x 160 box (semicircle on top). */
 const ARCH = "M0 160 V50 A50 50 0 0 1 100 50 V160 Z";
-const archMask = `url("data:image/svg+xml,${encodeURIComponent(
-  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 160' preserveAspectRatio='none'><path d='${ARCH}' fill='black'/></svg>`,
-)}")`;
+/** The same arch as rounded corners: far cheaper to clip with than a mask while it scales. */
+const ARCH_RADIUS = "50% 50% 0 0 / 31.25% 31.25% 0 0";
 const LEFT_LEAF = "polygon(0% 31.25%, 2% 22%, 8% 13%, 17% 6%, 28% 1.6%, 40% 0%, 100% 0%, 100% 100%, 0% 100%)";
 const RIGHT_LEAF = "polygon(0% 0%, 60% 0%, 72% 1.6%, 83% 6%, 92% 13%, 98% 22%, 100% 31.25%, 100% 100%, 0% 100%)";
 
@@ -75,7 +76,8 @@ export function WindowHero() {
           pin: "[data-stage]",
           start: "top top",
           end: () => `+=${window.innerHeight * 3.4}`,
-          scrub: 0.7,
+          // Lenis already smooths the scroll; a short scrub keeps the scene from trailing behind it.
+          scrub: 0.25,
           invalidateOnRefresh: true,
         },
       });
@@ -84,7 +86,7 @@ export function WindowHero() {
         // 1. The view drifts up a little, like the video's slow pan.
         .fromTo("[data-view]", { yPercent: 3 }, { yPercent: 0, duration: 0.6, ease: "power1.inOut" }, 0)
         // 2. Pull back: the open doors come in from the edges, then the wall around them.
-        .fromTo(win, { scale: startScale }, { scale: 1, duration: 0.45, ease: "power2.inOut", force3D: false }, 0.15)
+        .fromTo(win, { scale: startScale }, { scale: 1, duration: 0.45, ease: "power2.inOut" }, 0.15)
         // The view zooms in as the window pulls back, so the whole tower is in shot at the start.
         // xPercent keeps the Burj centred both zoomed out and zoomed in.
         .fromTo("[data-view]", { scale: 0.4, xPercent: -1.4 }, { scale: 1, xPercent: -3.4, duration: 0.45, ease: "power2.inOut" }, 0.15)
@@ -113,9 +115,7 @@ export function WindowHero() {
         {/* The wall: limewash plaster with palm shadows drifting across it */}
         <div className="absolute inset-0 bg-[#f4eee5]">
           {/* eslint-disable-next-line @next/next/no-img-element -- texture */}
-          <img src={photo(WALL, 2000)} alt="" className="absolute inset-0 size-full object-cover opacity-35 mix-blend-multiply" />
-          {/* eslint-disable-next-line @next/next/no-img-element -- texture */}
-          <img src={photo(SHADOW, 2000)} alt="" className="absolute inset-0 size-full object-cover opacity-25 mix-blend-multiply" />
+          <img src={WALL} alt="" fetchPriority="high" className="absolute inset-0 size-full object-cover" />
           <div className="absolute inset-0 bg-radial-[ellipse_at_50%_40%] from-transparent via-transparent to-[#5b4630]/10" />
         </div>
 
@@ -123,12 +123,12 @@ export function WindowHero() {
         {/* GSAP owns the img transform, so the tilt and mirror live on the wrapper */}
         <div className="absolute -bottom-[10%] -left-[3%] z-10 w-[46vw] origin-bottom-left md:w-[24vw] rotate-[18deg]">
           {/* eslint-disable-next-line @next/next/no-img-element -- decorative */}
-          <img data-branch src={OLIVE} alt="" className="w-full origin-bottom-left opacity-0 drop-shadow-[18px_24px_18px_rgb(60_40_20/0.18)]" />
+          <img data-branch src={OLIVE} alt="" className="w-full origin-bottom-left opacity-0 drop-shadow-[18px_24px_18px_rgb(60_40_20/0.18)] will-change-transform" />
         </div>
         <div className="absolute -right-[3%] -bottom-[10%] z-10 w-[46vw] origin-bottom-right md:w-[24vw] -rotate-[18deg]">
           <div className="-scale-x-100">
             {/* eslint-disable-next-line @next/next/no-img-element -- decorative */}
-            <img data-branch src={OLIVE} alt="" className="w-full origin-bottom-left opacity-0 drop-shadow-[18px_24px_18px_rgb(60_40_20/0.18)]" />
+            <img data-branch src={OLIVE} alt="" className="w-full origin-bottom-left opacity-0 drop-shadow-[18px_24px_18px_rgb(60_40_20/0.18)] will-change-transform" />
           </div>
         </div>
 
@@ -155,15 +155,13 @@ export function WindowHero() {
 
         {/* The window: view + wall hole + bronze frame + doors + sill, scaled as one */}
         <div className="absolute inset-0 z-10 grid place-items-center">
-          <div data-window className="relative h-[40svh] w-[calc(40svh*0.62)] wide:h-[66svh] wide:w-[calc(66svh*0.62)]" style={{ transformStyle: "preserve-3d", perspective: "900px" }}>
+          <div data-window className="relative will-change-transform h-[40svh] w-[calc(40svh*0.62)] wide:h-[66svh] wide:w-[calc(66svh*0.62)]" style={{ transformStyle: "preserve-3d", perspective: "900px" }}>
             {/* The view of Dubai inside the opening, with the title on it */}
-            <div className="absolute inset-0 overflow-hidden" style={{ maskImage: archMask, maskSize: "100% 100%", WebkitMaskImage: archMask, WebkitMaskSize: "100% 100%" }}>
+            <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: ARCH_RADIUS }}>
               {/* Wider than the opening so it can start zoomed out and still fill the screen */}
-              <div data-view className="absolute -inset-y-[8%] -inset-x-[110%]">
+              <div data-view className="absolute will-change-transform -inset-y-[8%] -inset-x-[110%]">
                 {/* eslint-disable-next-line @next/next/no-img-element -- large source needed for the zoom */}
-                <img src={photo(VIEW, 4200)} alt="The Burj Khalifa and Downtown Dubai across the water" className="absolute inset-0 size-full object-cover object-[65%_50%] brightness-[0.97] contrast-[1.14] saturate-[1.3]" />
-                {/* Lift the hazy sky towards a clear Gulf blue */}
-                <div className="absolute inset-x-0 top-0 h-[62%] bg-linear-to-b from-[#3f8fd6]/45 via-[#6aaee0]/25 to-transparent mix-blend-multiply" />
+                <img src={VIEW} alt="The Burj Khalifa and Downtown Dubai across the water" fetchPriority="high" className="absolute inset-0 size-full object-cover object-[65%_50%]" />
               </div>
               <h1 data-title className="absolute inset-x-0 top-[38%] text-center font-display text-[1svh] leading-[0.9] wide:text-[2.6svh] font-semibold text-white drop-shadow-[0_1px_8px_rgb(0_0_0/0.25)]">
                 <span className="block overflow-hidden"><span className="block">Dubai</span></span>
@@ -181,7 +179,9 @@ export function WindowHero() {
                   <stop offset="1" stopColor="#a8854f" />
                 </linearGradient>
               </defs>
-              <path d={ARCH} fill="none" stroke="#f4ede2" strokeWidth="26" vectorEffect="non-scaling-stroke" style={{ filter: "drop-shadow(0 10px 14px rgb(60 40 20 / 0.28))" }} />
+              {/* A soft shadow drawn as a wider, faint stroke, instead of a CSS drop-shadow re-rendered every frame */}
+              <path d={ARCH} fill="none" stroke="rgb(60 40 20 / 0.08)" strokeWidth="44" vectorEffect="non-scaling-stroke" transform="translate(0 1.5)" />
+              <path d={ARCH} fill="none" stroke="#f4ede2" strokeWidth="26" vectorEffect="non-scaling-stroke" />
               <path d={ARCH} fill="none" stroke="url(#bronze)" strokeWidth="5" vectorEffect="non-scaling-stroke" />
               <path d={ARCH} fill="none" stroke="#3b2a17" strokeOpacity="0.35" strokeWidth="1" transform="translate(1.5 1.5) scale(0.97 0.98)" />
             </svg>
@@ -222,7 +222,7 @@ export function WindowHero() {
               key={h.name}
               data-home
               className={`w-[78vw] max-w-[340px] shrink-0 snap-center rounded-[26px] p-3 opacity-0 shadow-[0_30px_60px_-35px_rgb(40_28_16/0.6)] md:w-auto md:max-w-none ${
-                h.featured ? "bg-ink text-ivory md:-translate-y-4" : "bg-white/85 backdrop-blur"
+                h.featured ? "bg-ink text-ivory md:-translate-y-4" : "bg-white"
               }`}
             >
               <div className="relative aspect-[4/3] overflow-hidden rounded-[18px]">

@@ -4,26 +4,29 @@ import { useEffect, useRef, useState } from "react";
 
 import { communities, photo } from "@/content/communities";
 import { homes } from "@/content/homes";
+import { toSection } from "@/lib/links";
 import { archMask, DUSK, OfficeClock } from "./footer";
-
-const nav = [
-  { label: "Buy", href: "#homes", deal: "buy" },
-  { label: "Rent", href: "#homes", deal: "rent" },
-  { label: "Off-plan", href: "#homes", deal: "offplan" },
-  { label: "Communities", href: "#communities" },
-];
 
 const count = (deal: string) => homes.filter((h) => h.deal === deal).length;
 
-/** The phone menu's links, each with a small live hint of what's behind it. */
-const menu = [
-  { label: "Buy", href: "#homes", deal: "buy", hint: `${count("buy")} homes for sale` },
-  { label: "Rent", href: "#homes", deal: "rent", hint: `${count("rent")} homes to rent` },
-  { label: "Off-plan", href: "#homes", deal: "offplan", hint: `${count("offplan")} new launches` },
-  { label: "Communities", href: "#communities", hint: `${communities.length} areas on the map` },
-  { label: "Costs", href: "#buying", hint: "Fees, step by step" },
-  { label: "Viewings", href: "#viewing", hint: "In person or video" },
-];
+// Buy, Rent and Off-plan open the marketplace; the rest are sections of the home page.
+const links = (here: readonly string[]) => ({
+  nav: [
+    { label: "Buy", href: "/homes?deal=buy" },
+    { label: "Rent", href: "/homes?deal=rent" },
+    { label: "Off-plan", href: "/homes?deal=offplan" },
+    { label: "Communities", href: toSection("communities", here) },
+  ],
+  /** The phone menu's links, each with a small live hint of what's behind it. */
+  menu: [
+    { label: "Buy", href: "/homes?deal=buy", hint: `${count("buy")} homes for sale` },
+    { label: "Rent", href: "/homes?deal=rent", hint: `${count("rent")} homes to rent` },
+    { label: "Off-plan", href: "/homes?deal=offplan", hint: `${count("offplan")} new launches` },
+    { label: "Communities", href: toSection("communities", here), hint: `${communities.length} areas on the map` },
+    { label: "Costs", href: toSection("buying", here), hint: "Fees, step by step" },
+    { label: "Viewings", href: toSection("viewing", here), hint: "In person or video" },
+  ],
+});
 
 /** A round seal with the name set around the edge, like a stamped plaster mark. */
 function Seal() {
@@ -43,8 +46,13 @@ function Seal() {
   );
 }
 
-/** Appears once the window has lifted away (driven by the hero timeline), then stays. */
-export function Header() {
+/**
+ * On the home page (`hero`) it appears once the window has lifted away, driven
+ * by the hero timeline, then stays. On other pages it's there from the start.
+ * `here` lists the home-page sections that exist on the current page.
+ */
+export function Header({ hero = false, here = [] }: { hero?: boolean; here?: readonly string[] }) {
+  const { nav, menu } = links(here);
   const [open, setOpenState] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
   const first = useRef<HTMLAnchorElement>(null);
@@ -81,22 +89,22 @@ export function Header() {
       <header
         data-header
         data-open={open}
-        className="group/h invisible fixed inset-x-0 top-0 z-50 bg-[#f4eee5]/80 opacity-0 backdrop-blur-md transition-[background-color] duration-500 data-[open=true]:bg-transparent data-[open=true]:backdrop-blur-none"
+        className={`group/h fixed inset-x-0 top-0 z-50 bg-[#f4eee5]/80 backdrop-blur-md ${hero ? "invisible opacity-0" : ""} transition-[background-color] duration-500 data-[open=true]:bg-transparent data-[open=true]:backdrop-blur-none`}
       >
         <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-5 py-4 md:px-10 md:py-5">
-          <a href="#" aria-label="Saraya Estates home" onClick={() => open && setOpen(false)} className="text-ink transition-colors duration-500 group-data-[open=true]/h:text-ivory">
+          <a href={hero ? "#" : "/"} aria-label="Saraya Estates home" onClick={() => open && setOpen(false)} className="text-ink transition-colors duration-500 group-data-[open=true]/h:text-ivory">
             <Seal />
           </a>
           <nav aria-label="Main" className="hidden items-center gap-10 md:flex">
             {nav.map((n) => (
-              <a key={n.label} href={n.href} data-deal={n.deal} className="text-[14px] font-semibold tracking-[0.12em] text-ink/80 transition hover:text-gold-dark">
+              <a key={n.label} href={n.href} className="text-[14px] font-semibold tracking-[0.12em] text-ink/80 transition hover:text-gold-dark">
                 {n.label.toUpperCase()}
               </a>
             ))}
           </nav>
           <div className="flex items-center gap-3">
             <a
-              href="#viewing"
+              href={toSection("viewing", here)}
               onClick={() => open && setOpen(false)}
               className="rounded-full bg-ink px-5 py-3 text-[13.5px] font-bold text-ivory transition duration-500 hover:bg-gold-dark group-data-[open=true]/h:bg-ivory group-data-[open=true]/h:text-ink md:px-6"
             >
@@ -136,7 +144,6 @@ export function Header() {
                   <a
                     ref={i === 0 ? first : undefined}
                     href={m.href}
-                    data-deal={m.deal}
                     onClick={() => setOpen(false)}
                     style={{ transitionDelay: open ? `${260 + i * 65}ms` : "0ms" }}
                     className="flex translate-y-[110%] items-baseline justify-between gap-4 py-3.5 opacity-0 transition-[translate,opacity] duration-[700ms] ease-out-soft group-data-[open=true]/m:translate-y-0 group-data-[open=true]/m:opacity-100 motion-reduce:transition-none"
