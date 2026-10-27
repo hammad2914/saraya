@@ -12,7 +12,8 @@ const photo = (id: string, w = 2400) => `https://images.unsplash.com/${id}?w=${w
 // Local, pre-graded images: the colour grade, sky tint and wall textures are baked in,
 // so the browser isn't re-filtering and re-blending huge layers on every scroll frame.
 // Sources: Unsplash photo-1773829126358 (the view), photo-1730402224803 + photo-1728509807162 (the wall).
-const VIEW = "/hero/burj.webp";
+// Generated with Gemini (made-up signs removed), enlarged to 4800px: the view starts zoomed in, so it needs the pixels.
+const VIEW = "/hero/burj-hd";
 const WALL = "/hero/wall.webp";
 const OLIVE = "/deco/olive.webp"; // olive branch, cut out
 
@@ -118,14 +119,17 @@ export function WindowHero() {
         .to("[data-discover] [data-copy]", { opacity: 0, duration: 0.12 }, 1.25)
         .fromTo("[data-home]", { opacity: 0, y: 160 }, { opacity: 1, y: 0, duration: 0.25, stagger: 0.06, ease: "power3.out" }, 1.3);
     }, root);
+    // GSAP now holds the first frame, so the CSS stand-in (globals.css) can step aside.
+    document.documentElement.dataset.heroReady = "";
     return () => {
       clearTimeout(idle);
       ctx.revert();
+      delete document.documentElement.dataset.heroReady;
     };
   }, []);
 
   return (
-    <section ref={root} aria-label="Saraya Estates">
+    <section ref={root} data-hero aria-label="Saraya Estates">
       <div data-stage className="relative h-svh overflow-hidden">
         {/* The wall: limewash plaster with palm shadows drifting across it */}
         <div className="absolute inset-0 bg-[#f4eee5]">
@@ -175,8 +179,10 @@ export function WindowHero() {
             <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: ARCH_RADIUS }}>
               {/* Wider than the opening so it can start zoomed out and still fill the screen */}
               <div data-view className="absolute -inset-y-[8%] -inset-x-[110%]">
-                {/* eslint-disable-next-line @next/next/no-img-element -- large source needed for the zoom */}
-                <img src={VIEW} alt="The Burj Khalifa and Downtown Dubai across the water" fetchPriority="high" className="absolute inset-0 size-full object-cover object-[65%_50%]" />
+                <picture>
+                  <source srcSet={`${VIEW}.avif`} type="image/avif" />
+                  <img src={`${VIEW}.webp`} alt="The Burj Khalifa and Downtown Dubai across the water" fetchPriority="high" decoding="async" className="absolute inset-0 size-full object-cover object-[65%_50%]" />
+                </picture>
               </div>
               <h1 data-title className="absolute inset-x-0 top-[38%] text-center font-display text-[1svh] leading-[0.9] wide:text-[2.6svh] font-semibold text-white drop-shadow-[0_1px_8px_rgb(0_0_0/0.25)]">
                 <span className="block overflow-hidden"><span className="block">Dubai</span></span>

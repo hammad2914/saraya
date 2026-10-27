@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronDown, List, Map as MapIcon } from "lucide-react";
+import { List, Map as MapIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { communities } from "@/content/communities";
 import { type Deal, dealLabels, type Home, homes, type Kind, kinds } from "@/content/homes";
+import { Dropdown } from "./dropdown";
 import { HomeCard } from "./home-card";
 import { HomesMap } from "./homes-map";
 
@@ -35,23 +36,17 @@ type Sort = keyof typeof sorts;
 
 export type MarketQuery = { deal?: string; community?: string; kind?: string; beds?: string; price?: string; sort?: string };
 
-/** A pill-shaped native select: the browser's own picker, the site's look. */
-function Select({ label, value, onChange, children }: { label: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
-  const on = value !== ANY && value !== "new";
+type Filters = { deal: Deal; community: string; kind: string; beds: number; price: string };
+
+/** Does a home pass these filters? Used for the list and for each option's count. */
+function matches(h: Home, f: Filters) {
+  const band = bands[f.deal === "rent" ? "rent" : "sale"][Number(f.price)];
   return (
-    <label className="relative shrink-0">
-      <span className="sr-only">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={`cursor-pointer appearance-none rounded-full py-2.5 pr-10 pl-4 text-[14px] font-semibold transition outline-none focus-visible:ring-2 focus-visible:ring-gold ${
-          on ? "bg-ink text-ivory" : "bg-white text-ink/80 hover:text-ink"
-        }`}
-      >
-        {children}
-      </select>
-      <ChevronDown className={`pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 ${on ? "text-ivory/70" : "text-stone"}`} />
-    </label>
+    h.deal === f.deal &&
+    (f.community === ANY || h.community === f.community) &&
+    (f.kind === ANY || h.kind === f.kind) &&
+    h.beds >= f.beds &&
+    (!band || (h.price >= band.min && h.price < band.max))
   );
 }
 
@@ -70,22 +65,14 @@ export function Market({ initial }: { initial: MarketQuery }) {
   const [view, setView] = useState<"list" | "map">("list");
   const [hot, setHot] = useState<string | null>(null);
 
-  const band = bands[deal === "rent" ? "rent" : "sale"][Number(price)];
+  const f: Filters = { deal, community, kind, beds, price };
+  // How many homes an option would leave, with the other filters as they are.
+  const count = (change: Partial<Filters>) => homes.filter((h) => matches(h, { ...f, ...change })).length;
 
   // A new list only when a filter changes (not on hover), so the map doesn't re-frame needlessly.
   const list = useMemo(
-    () =>
-      homes
-        .filter(
-          (h) =>
-            h.deal === deal &&
-            (community === ANY || h.community === community) &&
-            (kind === ANY || h.kind === kind) &&
-            h.beds >= beds &&
-            (!band || (h.price >= band.min && h.price < band.max)),
-        )
-        .sort(sorts[sort].by),
-    [deal, community, kind, beds, band, sort],
+    () => homes.filter((h) => matches(h, { deal, community, kind, beds, price })).sort(sorts[sort].by),
+    [deal, community, kind, beds, price, sort],
   );
 
   // Keep the address bar in step, without adding a history entry per click.
@@ -140,30 +127,46 @@ export function Market({ initial }: { initial: MarketQuery }) {
 
         {/* Filters */}
         <div className="-mx-5 mt-7 flex items-center gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
-          <Select label="Area" value={community} onChange={setCommunity}>
-            <option value={ANY}>All areas</option>
-            {communities.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </Select>
-          <Select label="Type" value={kind} onChange={(v) => setKind(v as Kind)}>
-            <option value={ANY}>Any type</option>
-            {kinds.map((k) => (
-              <option key={k} value={k}>{k}s</option>
-            ))}
-          </Select>
-          <Select label="Bedrooms" value={beds ? String(beds) : ANY} onChange={(v) => setBeds(v === ANY ? 0 : +v)}>
-            <option value={ANY}>Any beds</option>
-            {[1, 2, 3, 4, 5, 6].map((b) => (
-              <option key={b} value={b}>{b}+ beds</option>
-            ))}
-          </Select>
-          <Select label="Price" value={price} onChange={setPrice}>
-            <option value={ANY}>Any price</option>
-            {bands[deal === "rent" ? "rent" : "sale"].map((b, i) => (
-              <option key={b.label} value={i}>{b.label}</option>
-            ))}
-          </Select>
+          <Dropdown
+            label="Area"
+            value={community}
+            onChange={setCommunity}
+            active={community !== ANY}
+            options={[
+              { value: ANY, label: "All areas", count: count({ community: ANY }) },
+              ...communities.map((c) => ({ value: c.id, label: c.name, count: count({ community: c.id }) })),
+            ]}
+          />
+          <Dropdown
+            label="Type"
+            value={kind}
+            onChange={(v) => setKind(v as Kind)}
+            active={kind !== ANY}
+            options={[
+              { value: ANY, label: "Any type", count: count({ kind: ANY }) },
+              ...kinds.map((k) => ({ value: k, label: `${k}s`, count: count({ kind: k }) })),
+            ]}
+          />
+          <Dropdown
+            label="Bedrooms"
+            value={beds ? String(beds) : ANY}
+            onChange={(v) => setBeds(v === ANY ? 0 : +v)}
+            active={beds > 0}
+            options={[
+              { value: ANY, label: "Any beds", count: count({ beds: 0 }) },
+              ...[1, 2, 3, 4, 5, 6].map((b) => ({ value: String(b), label: `${b}+ beds`, count: count({ beds: b }) })),
+            ]}
+          />
+          <Dropdown
+            label="Price"
+            value={price}
+            onChange={setPrice}
+            active={price !== ANY}
+            options={[
+              { value: ANY, label: "Any price", count: count({ price: ANY }) },
+              ...bands[deal === "rent" ? "rent" : "sale"].map((b, i) => ({ value: String(i), label: b.label, count: count({ price: String(i) }) })),
+            ]}
+          />
           {filtered && (
             <button type="button" onClick={clear} className="shrink-0 px-3 py-2.5 text-[14px] font-semibold text-gold-dark underline-offset-4 hover:underline">
               Clear filters
@@ -177,11 +180,14 @@ export function Market({ initial }: { initial: MarketQuery }) {
             <span className="max-sm:hidden">{deal === "rent" ? ", rent shown per year" : ""}</span>
           </p>
           <div className="flex items-center gap-2">
-            <Select label="Sort" value={sort} onChange={(v) => setSort(v as Sort)}>
-              {(Object.keys(sorts) as Sort[]).map((s) => (
-                <option key={s} value={s}>{sorts[s].label}</option>
-              ))}
-            </Select>
+            <Dropdown
+              label="Sort"
+              value={sort}
+              onChange={(v) => setSort(v as Sort)}
+              active={false}
+              align="right"
+              options={(Object.keys(sorts) as Sort[]).map((s) => ({ value: s, label: sorts[s].label }))}
+            />
             {/* Phones show the list or the map, one at a time */}
             <button
               type="button"

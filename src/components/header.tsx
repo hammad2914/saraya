@@ -15,6 +15,7 @@ const links = (here: readonly string[]) => ({
     { label: "Buy", href: "/homes?deal=buy" },
     { label: "Rent", href: "/homes?deal=rent" },
     { label: "Off-plan", href: "/homes?deal=offplan" },
+    { label: "Sell", href: toSection("selling", here) },
     { label: "Communities", href: toSection("communities", here) },
   ],
   /** The phone menu's links, each with a small live hint of what's behind it. */
@@ -23,7 +24,10 @@ const links = (here: readonly string[]) => ({
     { label: "Rent", href: "/homes?deal=rent", hint: `${count("rent")} homes to rent` },
     { label: "Off-plan", href: "/homes?deal=offplan", hint: `${count("offplan")} new launches` },
     { label: "Communities", href: toSection("communities", here), hint: `${communities.length} areas on the map` },
+    { label: "Your area", href: toSection("where-to-live", here), hint: "Matched to your commute" },
     { label: "Costs", href: toSection("buying", here), hint: "Fees, step by step" },
+    { label: "From abroad", href: toSection("from-abroad", here), hint: "Visas, and no need to fly in" },
+    { label: "Sell", href: toSection("selling", here), hint: "What your home is worth" },
     { label: "Viewings", href: toSection("viewing", here), hint: "In person or video" },
   ],
 });
@@ -146,9 +150,9 @@ export function Header({ hero = false, here = [] }: { hero?: boolean; here?: rea
                     href={m.href}
                     onClick={() => setOpen(false)}
                     style={{ transitionDelay: open ? `${260 + i * 65}ms` : "0ms" }}
-                    className="flex translate-y-[110%] items-baseline justify-between gap-4 py-3.5 opacity-0 transition-[translate,opacity] duration-[700ms] ease-out-soft group-data-[open=true]/m:translate-y-0 group-data-[open=true]/m:opacity-100 motion-reduce:transition-none"
+                    className="flex translate-y-[110%] items-baseline justify-between gap-4 py-3 opacity-0 transition-[translate,opacity] duration-[700ms] ease-out-soft group-data-[open=true]/m:translate-y-0 group-data-[open=true]/m:opacity-100 motion-reduce:transition-none"
                   >
-                    <span className="font-display text-[clamp(32px,9vw,44px)] leading-[1.05] font-semibold">{m.label}</span>
+                    <span className="font-display text-[clamp(28px,7.6vw,38px)] leading-[1.05] font-semibold">{m.label}</span>
                     <span className="max-w-[130px] text-right text-[13px] leading-snug font-semibold text-balance text-gold">{m.hint}</span>
                   </a>
                 </li>

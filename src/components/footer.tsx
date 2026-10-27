@@ -126,6 +126,7 @@ export function Footer({ here = [] }: { here?: readonly string[] }) {
                     <li><Link href="/homes?deal=buy" className={link}>Buy</Link></li>
                     <li><Link href="/homes?deal=rent" className={link}>Rent</Link></li>
                     <li><Link href="/homes?deal=offplan" className={link}>Off-plan</Link></li>
+                    <li><a href={toSection("selling", here)} className={link}>Sell or let yours</a></li>
                   </ul>
                 </div>
                 <div>
@@ -142,7 +143,9 @@ export function Footer({ here = [] }: { here?: readonly string[] }) {
                   <p className={head}>BUYING</p>
                   <ul className="mt-4 grid gap-2.5">
                     <li><a href={toSection("buying", here)} className={link}>What it costs</a></li>
+                    <li><a href={toSection("from-abroad", here)} className={link}>Buying from abroad</a></li>
                     <li><a href={toSection("communities", here)} className={link}>Where to buy</a></li>
+                    <li><a href={toSection("where-to-live", here)} className={link}>Which area suits you</a></li>
                     <li><a href={toSection("viewing", here)} className={link}>Book a viewing</a></li>
                   </ul>
                 </div>

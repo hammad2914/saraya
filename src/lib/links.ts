@@ -6,4 +6,4 @@
 export const toSection = (id: string, here: readonly string[]) => (here.includes(id) ? `#${id}` : `/#${id}`);
 
 /** The sections on the home page. */
-export const HOME_SECTIONS = ["communities", "homes", "buying", "viewing"] as const;
+export const HOME_SECTIONS = ["communities", "where-to-live", "homes", "buying", "from-abroad", "selling", "viewing"] as const;

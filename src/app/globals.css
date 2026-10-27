@@ -83,3 +83,39 @@ html.lenis body {
   width: 40px;
   height: 40px;
 }
+
+/* The hero's first frame, drawn by CSS until GSAP takes over (it adds data-hero-ready).
+   Without it the page shows the closed window at rest for a moment while scripts load.
+   --hero-start is measured by an inline script in the layout's <head>. */
+html:not([data-hero-ready]) [data-window] {
+  transform: scale(var(--hero-start, 6));
+}
+html:not([data-hero-ready]) [data-view] {
+  transform: translate(-1.4%, 3%) scale(0.4);
+}
+html:not([data-hero-ready]) [data-leaf="left"] {
+  transform: rotateY(-96deg);
+}
+html:not([data-hero-ready]) [data-leaf="right"] {
+  transform: rotateY(96deg);
+}
+html:not([data-hero-ready]) [data-side] > *,
+html:not([data-hero-ready]) [data-discover] > * {
+  opacity: 0;
+}
+html:not([data-hero-ready]) [data-title] span {
+  transform: translateY(110%);
+}
+
+/* Filter dropdowns: a popover on wide screens, a sheet from the bottom on phones */
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+@keyframes sheet {
+  from {
+    transform: translateY(100%);
+  }
+}

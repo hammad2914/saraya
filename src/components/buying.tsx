@@ -3,33 +3,9 @@
 import { BadgeCheck, FileSignature, Wallet } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { aed, aedShort, GOLDEN_VISA_FROM, maxLoanShare, presets, purchaseCosts, steps } from "@/content/buying";
+import { Money } from "@/components/money";
+import { aedShort, GOLDEN_VISA_FROM, maxLoanShare, presets, purchaseCosts, steps } from "@/content/buying";
 import { photo } from "@/content/communities";
-
-/** A number that glides to its new value instead of jumping. */
-function useGlide(target: number, ms = 600) {
-  const [v, setV] = useState(target);
-  const from = useRef(target);
-  useEffect(() => {
-    const start = performance.now();
-    const a = from.current;
-    let raf = 0;
-    const tick = (t: number) => {
-      const k = Math.min(1, (t - start) / ms);
-      const now = a + (target - a) * (1 - (1 - k) ** 3);
-      from.current = now;
-      setV(now);
-      if (k < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, ms]);
-  return v;
-}
-
-function Money({ value, className = "" }: { value: number; className?: string }) {
-  return <span className={`tabular-nums ${className}`}>{aed(useGlide(value))}</span>;
-}
 
 /**
  * Buying in Dubai: pick a price and see every one-off fee, then walk the
