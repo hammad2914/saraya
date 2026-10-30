@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Saraya Estates
 
-## Getting Started
+A design concept for a Dubai real-estate agency. The site walks a buyer from the first look at the city to booking a viewing, and every section is something you use rather than something you read.
 
-First, run the development server:
+It is a portfolio piece: the listings, agents and prices are examples, and nothing you submit is sent anywhere.
+
+## What's on the page
+
+- **The window.** The page opens on a room with steel glass doors. Scrolling opens them and walks you out towards the Burj Khalifa across the water.
+- **Communities map.** Dubai's main areas on a live map, with price pins. Zoom in and the individual homes appear, with nearby pins merged so they don't pile up.
+- **Where to live.** Pick where you'll work, rush hour or off-peak, your budget and what you want nearby. It ranks the areas by drive time and says why. The times are estimates and the page labels them that way.
+- **Homes.** Buy, rent or off-plan listings with filters. You can flip through photos in the row, and "See inside" opens a room-by-room view.
+- **Buying costs.** A fee receipt that updates as you move the price: cash or mortgage, and whether the price reaches a Golden Visa.
+- **Buying from abroad.** The residency each price unlocks, and the steps to buy without flying in, shown in your own time zone.
+- **Selling.** Enter a home and get a sale range and likely rent from comparable listings, then compare selling with letting.
+- **Book a viewing.** In person or by video, in your language. For video calls the times are shown on your own clock.
+- **Marketplace** at `/homes`: filters kept in the URL, a list beside a map, and a page for each home with a gallery, fees, payment plan and similar homes.
+
+## Built with
+
+Next.js 16 (App Router, cache components), React 19, TypeScript, Tailwind CSS 4, GSAP with ScrollTrigger, Lenis smooth scrolling, and MapLibre GL with OpenFreeMap tiles. There is no backend: all the maths runs in the browser from the data in `src/content/`.
+
+## Running it
+
+You need Node 24.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`npm install` also copies MapLibre's worker into `public/maplibre/`, because the map loads it from there.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Music
 
-## Learn More
+The hero can play a quiet looped track. Put any royalty-free MP3 at `public/audio/hero.mp3` and a sound button appears. Without the file, the button stays hidden.
 
-To learn more about Next.js, take a look at the following resources:
+## Credits
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Photos:** [Unsplash](https://unsplash.com)
+- **Map tiles:** [OpenFreeMap](https://openfreemap.org)
+- **Hero view:** generated with Gemini, then retouched
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Design and code by Hammad Ali.
