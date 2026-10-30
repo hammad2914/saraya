@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const TRACK = "/audio/hero.mp3"; // the music from the reference video, looped
+const TRACK = "/audio/hero.mp3"; // a royalty-free track, looped; the button hides if the file is missing
 const LEVEL = 0.55;
 
 /**
@@ -22,6 +22,7 @@ export function SoundToggle() {
   const [playing, setPlaying] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [shown, setShown] = useState(true);
+  const [missing, setMissing] = useState(false);
 
   const fade = (a: HTMLAudioElement, to: number, done?: () => void) => {
     cancelAnimationFrame(raf.current);
@@ -43,6 +44,7 @@ export function SoundToggle() {
       audio.current = new Audio(TRACK);
       audio.current.loop = true;
       audio.current.volume = 0;
+      audio.current.addEventListener("error", () => setMissing(true), { once: true });
     }
     const a = audio.current;
     if (want.current && inHero.current) {
@@ -97,6 +99,7 @@ export function SoundToggle() {
     sync();
   };
 
+  if (missing) return null;
   const sounding = on && playing;
   return (
     <button
